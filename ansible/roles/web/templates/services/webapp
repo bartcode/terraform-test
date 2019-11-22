@@ -1,0 +1,13 @@
+[Unit]
+Description=gunicorn daemon
+After=network.target
+
+[Service]
+User={{ user }}
+Group={{ user }}
+WorkingDirectory={{ home_folder }}
+Environment="PATH={{ home_folder }}/venv/bin"
+ExecStart={{ home_folder }}/venv/bin/gunicorn --workers 3 --bind unix:webapp.sock wsgi:app
+
+[Install]
+WantedBy=multi-user.target

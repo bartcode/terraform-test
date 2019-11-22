@@ -7,3 +7,12 @@
 
 # .tfvars files
 *.tfvars
+
+# IDE
+.idea/
+.vscode/
+
+hosts*
+
+*.json
+hosts_gcp.yml

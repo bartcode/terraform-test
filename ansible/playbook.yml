@@ -1,0 +1,6 @@
+- name: Set up machine
+  hosts: web
+  roles:
+    - python
+    - nginx
+    - web

@@ -1,0 +1,73 @@
+- name: Create group.
+  become: yes
+  group:
+    name: "{{ user }}"
+    state: present
+
+- name: Add user for webserver.
+  become: yes
+  user:
+    name: "{{ user }}"
+    create_home: True
+    state: present
+    groups:
+      - "{{ user }}"
+
+- name: Setup Nginx
+  become: yes
+  package:
+    name: nginx
+    state: present
+
+- name: Copy Nginx files
+  become: yes
+  template:
+    src: "services/nginx"
+    dest: "/etc/nginx/sites-available/default"
+    force: True
+
+- name: Create symlink for nginx
+  become: yes
+  file:
+    src: /etc/nginx/sites-available/webapp
+    dest: /etc/nginx/sites-enabled/webapp
+    state: link
+
+- name: Restart Nginx
+  become: yes
+  systemd:
+    name: nginx
+    enabled: yes
+    state: restarted
+    daemon_reload: yes
+
+- name: Copy Systemd files
+  become: yes
+  template:
+    src: "services/webapp"
+    dest: "/etc/systemd/system/webapp.service"
+
+- name: Install virtual environment and set up Flask app.
+  become: yes
+  block:
+    - name: Copy files
+      copy:
+        src: "{{ item }}"
+        dest: "{{ home_folder }}"
+        owner: "{{ user }}"
+        group: "{{ user }}"
+      with_fileglob:
+        - "app/*"
+
+    - name: Create virtual environment.
+      pip:
+        requirements: "{{ home_folder }}/requirements.txt"
+        virtualenv: "{{ home_folder }}/venv"
+        virtualenv_command: /usr/bin/python3 -m venv
+
+    - name: Start Webapp
+      systemd:
+        name: webapp
+        enabled: yes
+        state: restarted
+        daemon_reload: yes

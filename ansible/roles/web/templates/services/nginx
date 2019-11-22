@@ -1,0 +1,10 @@
+server {
+    root {{ home_folder }};
+    listen 80;
+    server_name _;
+
+    location / {
+        include proxy_params;
+        proxy_pass http://unix:{{ home_folder }}/webapp.sock;
+    }
+}
