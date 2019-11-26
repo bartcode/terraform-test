@@ -1,21 +1,44 @@
+variable "size" {
+  default = 2
+}
+variable "project" {
+  default = "playground-bart"
+}
+variable "region" {
+  default = "europe-west4"
+}
+variable "zone" {
+  default = "europe-west4-b"
+}
+
 // Configure the Google Cloud Platform provider
 provider "google" {
-  project = "playground-bart"
-  region = "europe-west4"
-  zone = "europe-west4-b"
+  project = var.project
+  region = var.region
+  zone = var.zone
+}
+
+provider "google-beta" {
+  project = var.project
+  region = var.region
+  zone = var.zone
 }
 
 // Creating random ID
-resource "random_id" "instance_id" {
+resource "random_id" "instance" {
+  count = var.size
   byte_length = 8
 }
 
 // A single Google Compute Engine instance
-resource "google_compute_instance" "default" {
-  name = "flask-vm-${random_id.instance_id.hex}"
+resource "google_compute_instance" "webservers" {
+  name = "flask-vm-${random_id.instance[count.index].hex}"
   machine_type = "f1-micro"
+  count = var.size
 
-  tags = ["web"]
+  tags = [
+    "web"
+  ]
 
   boot_disk {
     initialize_params {
@@ -32,23 +55,67 @@ resource "google_compute_instance" "default" {
   }
 }
 
+resource "google_compute_instance_group" "webservers" {
+  name = "webservers"
+  description = "Instance group"
+
+  instances = google_compute_instance.webservers.*.self_link
+
+  named_port {
+    name = "http"
+    port = "80"
+  }
+}
+
+resource "google_compute_managed_ssl_certificate" "default" {
+  provider = google-beta
+
+  name = "web-cert"
+
+  managed {
+    domains = [
+      "test.bartstravel.guide"
+    ]
+  }
+}
+
+module "gce-lb-http" {
+  source = "GoogleCloudPlatform/lb-http/google"
+  name = "web-lb"
+  project = "playground-bart"
+  target_tags = [
+    "web"
+  ]
+  backends = {
+    "0" = [
+      {
+        group = google_compute_instance_group.webservers.self_link
+        description = "Webservers"
+        max_utilization = 0.8
+        balancing_mode = null
+        capacity_scaler = null
+        max_connections = null
+        max_connections_per_instance = null
+        max_rate = null
+        max_rate_per_instance = null
+      }
+    ]
+  }
+  backend_params = [
+    # health check path, port name, port number, timeout seconds.
+    "/,http,80,10"
+  ]
+  ssl = true
+  ssl_certificates = [
+    google_compute_managed_ssl_certificate.default.self_link
+  ]
+  use_ssl_certificates = true
+}
+
 output "hostnames" {
-  value = google_compute_instance.default.*.name
+  value = google_compute_instance.webservers.*.name
 }
 
-resource "local_file" "hosts" {
-  content = templatefile("ansible/inventory/hosts_gcp.yml.tpl", {
-    hostnames = google_compute_instance.default.*.name
-  })
-  filename = "hosts_gcp.yml"
-}
-
-resource "google_compute_firewall" "default" {
- name    = "flask-app-firewall"
- network = "default"
-
- allow {
-   protocol = "tcp"
-   ports    = ["80"]
- }
+output "certificate-ip" {
+  value = module.gce-lb-http.external_ip
 }

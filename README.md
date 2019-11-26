@@ -11,7 +11,7 @@ $ brew install ansible terraform
 ## Preparation
 - Store a service account key from the GCP Console in the root of this project, named `service_account.json`.
 - Make sure to have run `gcloud auth application-default login`, which creates `~/.ssh/google_compute_engine`.
-- In [`./ansible/inventory/hosts_gcp.yml.tpl`](./ansible/inventory/hosts_gcp.yml.tpl), edit the project(s) used in GCP.
+- In [`./hosts_gcp.yml.tpl`](hosts_gcp.yml), edit the project(s) used in GCP.
 
 ## Usage
 ```bash

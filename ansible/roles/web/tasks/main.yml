@@ -29,9 +29,10 @@
 - name: Create symlink for nginx
   become: yes
   file:
-    src: /etc/nginx/sites-available/webapp
-    dest: /etc/nginx/sites-enabled/webapp
+    src: /etc/nginx/sites-available/default
+    dest: /etc/nginx/sites-enabled/default
     state: link
+    force: True
 
 - name: Restart Nginx
   become: yes
