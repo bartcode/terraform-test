@@ -12,6 +12,4 @@
 .idea/
 .vscode/
 
-hosts*
-
 *.json

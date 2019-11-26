@@ -1,3 +1,8 @@
+variable "domains" {
+  default = [
+    "test.bartstravel.guide"
+  ]
+}
 variable "size" {
   default = 2
 }
@@ -73,9 +78,7 @@ resource "google_compute_managed_ssl_certificate" "default" {
   name = "web-cert"
 
   managed {
-    domains = [
-      "test.bartstravel.guide"
-    ]
+    domains = var.domains
   }
 }
 
